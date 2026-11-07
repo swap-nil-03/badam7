@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.3.1
+- Pass is now a small red PASS button inside the status strip (next to the seconds pill) instead of a big separate button, and only appears when you have no playable card.
+- Status strip made slimmer; table cards slightly tighter. More of the table and your hand fit on screen.
+
+## v1.3.0
+- **Turn timer:** default is now 30s; the host picks 15/20/30/45/60s in the lobby before the game starts (shown to all players).
+- **Compact timer:** the timer is now a small seconds pill plus a thin bar inside a slim status strip (turn + last action), much less screen space.
+- **Smaller hand cards:** 48x68 overlapping cards with the rank/suit in the corner so more cards fit on a phone screen; the hand wraps and the page padding adjusts automatically.
+- **Table cards show suits:** e.g. 5♠ 6♠ 7♠ in each suit column.
+- **Emoji reactions:** 😀 button opens a tray (👍😂😮😡👏🔥😢🎉); the emoji floats down from the sender's player card for everyone (server-validated, 1 per 0.7s).
+
 ## v1.2.0 — bug-fix release
 - **Fixed:** Copy Code did nothing on http LAN addresses (browser clipboard API needs HTTPS). Added a fallback that works everywhere.
 - **Fixed:** suit colours. Hearts/Diamonds are red, Spades/Clubs black, in the hand and on the table (a CSS override and emoji-style glyphs were hiding the red). Suit symbols now use text presentation so phones don't recolour them.

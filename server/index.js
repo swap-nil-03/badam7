@@ -7,6 +7,7 @@ const app = express(), server = http.createServer(app), io = new Server(server, 
 app.use(express.static(path.join(__dirname, '..', 'web')));
 const rooms = new Map(), gRoom = new Map(), gSock = new Map(); let queue = [], qTimer = null;
 app.get('/health', (q, r) => r.json({ ok: true, version: require('../package.json').version, rooms: rooms.size, players: gSock.size, queue: queue.length }));
+const EMO = ['👍', '😂', '😮', '😡', '👏', '🔥', '😢', '🎉'];
 const AV = ['🦁', '🐯', '🦊', '🐼', '🦉', '🐘', '🦄', '🐲', '🦅', '🐬'];
 const SY = { S: '♠', H: '♥', D: '♦', C: '♣' }, RK = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const cs = c => RK[c.r] + SY[c.s];
@@ -21,7 +22,7 @@ function view(room, id) {
     players: room.players.map((p, i) => ({ id: p.id, nick: p.nick, avatar: p.avatar, online: p.online && !p.left, score: p.score, cards: rd ? rd.hands[i].length : 0 })),
     board: rd && rd.board, turn: rd ? room.players[rd.turn].id : null, last: room.last,
     hand: rd && seat >= 0 ? rd.hands[seat] : [], // ONLY the viewer's own hand
-    legal: rd && !rd.finished && seat === rd.turn ? G.legalMoves(rd, seat) : [], res: room.res, hist: room.hist, voice: [...room.voice], timeLeft: (room.phase === 'playing' || room.phase === 'roundEnd') ? Math.max(0, room.dl - Date.now()) : 0 };
+    legal: rd && !rd.finished && seat === rd.turn ? G.legalMoves(rd, seat) : [], res: room.res, hist: room.hist, turnSec: room.turnSec, voice: [...room.voice], timeLeft: (room.phase === 'playing' || room.phase === 'roundEnd') ? Math.max(0, room.dl - Date.now()) : 0 };
 }
 function push(room) { sched(room); room.players.forEach(p => { const sid = gSock.get(p.id); if (p.online && !p.left && sid) io.to(sid).emit('state', view(room, p.id)); }); }
 const bc = (room, ev, d) => room.players.forEach(p => { const sid = gSock.get(p.id); if (p.online && !p.left && sid) io.to(sid).emit(ev, d); });
@@ -29,7 +30,7 @@ const bc = (room, ev, d) => room.players.forEach(p => { const sid = gSock.get(p.
 function sched(room) {
   if (room.phase !== 'playing') { clearTimeout(room.t); room.key = null; return; }
   const rd = room.rd, seat = rd.turn, p = room.players[seat], key = room.round + ':' + room.n; if (room.key === key) return;
-  clearTimeout(room.t); room.key = key; const ms = p.left ? 1200 : p.online ? 20000 : 8000; room.dl = Date.now() + ms;
+  clearTimeout(room.t); room.key = key; const ms = p.left ? 1200 : p.online ? room.turnSec * 1000 : Math.min(8000, room.turnSec * 1000); room.dl = Date.now() + ms;
   room.t = setTimeout(() => { try { if (room.key !== key || room.phase !== 'playing') return; const m = G.legalMoves(rd, seat); move(room, p.id, m.length ? m[crypto.randomInt(m.length)] : null, true); } catch (e) { console.error(e); } }, ms);
 }
 function abort(room, w) {
@@ -59,7 +60,7 @@ function endRound(room) {
   push(room);
 }
 function mkRoom(hostId, rounds) {
-  const room = { code: roomCode(), host: hostId, rounds: [1, 2, 5, 7].includes(+rounds) ? +rounds : 5, players: [], phase: 'lobby', round: 0, rd: null, res: null, hist: [], last: null, voice: new Set(), chat: [], n: 0 };
+  const room = { code: roomCode(), host: hostId, rounds: [1, 2, 5, 7].includes(+rounds) ? +rounds : 5, players: [], phase: 'lobby', round: 0, rd: null, res: null, hist: [], last: null, voice: new Set(), chat: [], n: 0, turnSec: 30 };
   rooms.set(room.code, room); return room;
 }
 function addP(room, id) {
@@ -110,6 +111,8 @@ io.on('connection', socket => {
       if (r.host === id) { const n = r.players.find(q => !q.left && q.online); if (n) r.host = n.id; }
       const act = r.players.filter(q => !q.left); if (r.phase !== 'final' && act.length < 2) abort(r, act[0]); else push(r); }
     socket.emit('left'); });
+  h('setTimer', ({ sec }) => { const r = host(); if (r.phase !== 'lobby') throw new Error('Change the timer before the game starts'); if (![15, 20, 30, 45, 60].includes(+sec)) throw new Error('Invalid timer'); r.turnSec = +sec; push(r); });
+  h('react', ({ e }) => { const r = room(); if (!r) throw new Error('Not in a room'); if (!EMO.includes(e)) throw new Error('Invalid reaction'); const now = Date.now(); if (now - (socket.data.lr || 0) < 700) return; socket.data.lr = now; bc(r, 'react', { id: socket.data.gid, e }); });
   h('chat', ({ text }) => { const r = room(); if (!r) throw new Error('Not in a room');
     text = String(text || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 200); if (!text) return;
     const me = r.players.find(p => p.id === socket.data.gid), low = text.toLowerCase();

@@ -1,5 +1,5 @@
 
-const VER='1.2.0',SY={S:'♠\uFE0E',H:'♥\uFE0E',D:'♦\uFE0E',C:'♣\uFE0E'},RK=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'],ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+const VER='1.3.1',SY={S:'♠\uFE0E',H:'♥\uFE0E',D:'♦\uFE0E',C:'♣\uFE0E'},RK=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'],ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 let gid=localStorage.gid;if(!gid){gid=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');localStorage.gid=gid}
 let nick=localStorage.nick||'',S=null,view='home',rounds=5,qn=0,conn='connecting',failed=false,cd=15,cdT=null,onl=0,info=null,mute=localStorage.mute==='1',ac;
 let chat=[],unread=0,ment=false,chatOpen=false,vs=null,peers={},vOn=false,vMute=false,speak={};
@@ -55,7 +55,10 @@ function mark(id){document.querySelector(`[data-p="${id}"]`)?.classList.toggle('
 function watch(st,id){try{ac=ac||new AudioContext();const a=ac.createAnalyser(),b=new Uint8Array(a.frequencyBinCount);ac.createMediaStreamSource(st).connect(a);
   const iv=setInterval(()=>{if(id!==gid&&!peers[id]||id===gid&&!vOn){clearInterval(iv);return}a.getByteFrequencyData(b);const v=b.reduce((x,y)=>x+y,0)/b.length>18&&!(id===gid&&vMute);if(v!==!!speak[id]){speak[id]=v;mark(id)}},200)}catch(e){}}
 // ---- timer bar
-setInterval(()=>{if(!S||(S.phase!=='playing'&&S.phase!=='roundEnd'))return;const r=Math.max(0,S.timeLeft-(Date.now()-S._t0)),b=$('#tbar'),t=$('#tsec');if(b){b.style.width=Math.min(100,r/200)+'%';b.style.background=r<5000?'#e33':'#3d6'}if(t)t.textContent=Math.ceil(r/1000)+'s';const n=$('#nsec');if(n)n.textContent=Math.ceil(r/1000)},250);
+setInterval(()=>{if(!S||(S.phase!=='playing'&&S.phase!=='roundEnd'))return;const r=Math.max(0,S.timeLeft-(Date.now()-S._t0)),b=$('#tbar'),t=$('#tsec');if(b){b.style.width=Math.min(100,r/(S.turnSec*10))+'%';b.style.background=r<5000?'#e33':'#3d6'}if(t){t.textContent=Math.ceil(r/1000)+'s';t.style.background=r<5000?'#e33':'#1d5a3c'}const n=$('#nsec');if(n)n.textContent=Math.ceil(r/1000)},250);
+const EM=['👍','😂','😮','😡','👏','🔥','😢','🎉'];let rxOpen=false;
+function react(e){rxOpen=false;emit('react',{e});render()}
+socket.on('react',({id,e})=>{const el=document.querySelector(`[data-p="${id}"]`),r=el?el.getBoundingClientRect():{left:innerWidth/2-20,width:40,bottom:120};const f=document.createElement('div');f.className='fl';f.textContent=e;f.style.left=Math.min(innerWidth-48,Math.max(4,r.left+r.width/2-18))+'px';f.style.top=(r.bottom-6)+'px';document.body.appendChild(f);setTimeout(()=>f.remove(),1800);if(id!==gid)beep(700)});
 function copyText(t){const done=()=>toast('Copied: '+t.slice(0,40));
   const fb=()=>{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(a);a.focus();a.select();a.setSelectionRange(0,t.length);let ok=false;try{ok=document.execCommand('copy')}catch(e){}a.remove();ok?done():prompt('Copy this:',t)};
   if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(done,fb);else fb()} // clipboard API needs HTTPS; fallback works on http LAN
@@ -64,12 +67,12 @@ const card=(c,cls='')=>`<div class="card ${'HD'.includes(c.s)?'red':''} ${cls}" 
 const nm=id=>esc(S.players.find(p=>p.id===id)?.nick||'?');
 function render(){
   const a=$('#app');modal();$('#cbtn').style.display=S?'block':'none';
-  if(!S||S.phase==='lobby'){$('#hand')?.remove()}
+  if(!S||S.phase==='lobby'){$('#hand')?.remove();a.style.paddingBottom=''}
   if(!S&&chatOpen)chatToggle(false);
   if(!nick){a.innerHTML=`<h1>♠ BADAM 7 ♥</h1><div class="box"><p>Welcome! Pick a nickname to play as a guest.</p><input id=n maxlength=16 placeholder="Nickname"><button onclick="setNick()">Continue</button></div>`;return}
   if(S)return room(a);
   if(view==='queue'){a.innerHTML=`<h1>Searching…</h1><div class="box big">🃏</div><p style="text-align:center">${qn} player(s) waiting. Game starts when 2+ are found (max 7).</p><button class=alt onclick="emit('cancelSearch');view='home';render()">Cancel</button>`;return}
-  if(view==='rules'){a.innerHTML=`<h1>Rules</h1><div class="box"><p>2–7 players, 52 cards dealt evenly (extra cards go to the first seats). The holder of 7♥ starts and must play it first. A 7 opens a suit; then extend that suit with the next lower or higher card. If you have a playable card you must play one; if you have none, press Pass. You have 20 seconds per turn, otherwise a random legal card is played for you. First to empty their hand wins the round with 0 penalty; others score the sum of remaining cards (A=1, J=11, Q=12, K=13). Lowest total after 5 or 7 rounds wins.</p></div><button onclick="view='home';render()">Back</button>`;return}
+  if(view==='rules'){a.innerHTML=`<h1>Rules</h1><div class="box"><p>2–7 players, 52 cards dealt evenly (extra cards go to the first seats). The holder of 7♥ starts and must play it first. A 7 opens a suit; then extend that suit with the next lower or higher card. If you have a playable card you must play one; if you have none, press Pass. Each turn has a timer (30s by default; the host can change it in the lobby), otherwise a random legal card is played for you. First to empty their hand wins the round with 0 penalty; others score the sum of remaining cards (A=1, J=11, Q=12, K=13). Lowest total after 5 or 7 rounds wins.</p></div><button onclick="view='home';render()">Back</button>`;return}
   if(view==='stats'){const s=info;a.innerHTML=`<h1>Profile</h1><div class="box">${s?`<p>${s.p.avatar} <b>${esc(s.p.nick)}</b></p><p>Games: ${s.p.games} · Wins: ${s.p.wins} (${s.winPct}%)<br>Rounds: ${s.p.rounds} · Avg penalty/round: ${s.avg}<br>Best match: ${s.p.best??'–'} · Joined ${s.p.created.slice(0,10)}</p>`:'Loading…'}</div><h2>Leaderboard</h2><div class="box" id=lb>Loading…</div><button onclick="view='home';render()">Back</button>`;
     emit('leaderboard',{},r=>{const e=$('#lb');if(e)e.innerHTML='<table><tr><th>#<th>Player<th>Games<th>Wins<th>Win%</tr>'+r.rows.map((x,i)=>`<tr><td>${i+1}<td>${x.avatar} ${esc(x.nick)}<td>${x.games}<td>${x.wins}<td>${Math.round(100*x.wins/x.games)}</tr>`).join('')+'</table>'});return}
   a.innerHTML=`<div class="bar"><span>${conn==='connected'?'🟢 Connected':'🟠 '+conn}</span><span>${onl?onl+' online':''}</span></div><h1>♠ BADAM 7 ♥</h1><p style="text-align:center">Hi, <b>${esc(nick)}</b> <a href="#" onclick="chNick();return false" style="color:var(--gold)">change</a></p>
@@ -82,19 +85,19 @@ function setNick(){const v=$('#n').value.trim();if(!v)return toast('Enter a nick
 function chNick(){const v=prompt('New nickname',nick);if(v&&v.trim()){nick=v.trim();localStorage.nick=nick;reg();render()}}
 function leave(){if(confirm('Leave this game?'))emit('leave')}
 function topBar(){return `<div class="bar"><span>${conn==='connected'?'🟢':'🟠'} Room ${S.code} · Round ${Math.max(S.round,1)}/${S.rounds}</span><span style="display:flex;gap:6px">
-  <button class="sm alt" onclick="voiceToggle()">🎤 ${vOn?'Leave voice':'Voice'}</button>${vOn?`<button class="sm alt" onclick="voiceMute()">${vMute?'🔇 Unmute':'🎙 Mute'}</button>`:''}
+  <button class="sm alt" onclick="rxOpen=!rxOpen;render()">😀</button><button class="sm alt" onclick="voiceToggle()">🎤 ${vOn?'Leave voice':'Voice'}</button>${vOn?`<button class="sm alt" onclick="voiceMute()">${vMute?'🔇 Unmute':'🎙 Mute'}</button>`:''}
   <button class="sm alt" onclick="localStorage.mute=(mute=!mute)?1:'';render()">${mute?'🔇':'🔊'}</button><button class="sm" style="background:#a33;color:#fff" onclick="leave()">Leave</button></span></div>
-  <div class="pl">${S.players.map(p=>`<div data-p="${p.id}" class="p ${p.id===S.turn?'t':''} ${p.online?'':'off'} ${speak[p.id]?'sp':''}">${p.avatar} ${p.id===S.host?'👑':''}${S.voice.includes(p.id)?'🎤':''}<br><b>${esc(p.nick)}</b><br><span class=dot></span> ${p.score} pts${S.round?' · '+p.cards+' cards':''}</div>`).join('')}</div>`}
+  ${rxOpen?`<div class="rx">${EM.map(e=>`<span onclick="react('${e}')">${e}</span>`).join('')}</div>`:''}<div class="pl">${S.players.map(p=>`<div data-p="${p.id}" class="p ${p.id===S.turn?'t':''} ${p.online?'':'off'} ${speak[p.id]?'sp':''}">${p.avatar} ${p.id===S.host?'👑':''}${S.voice.includes(p.id)?'🎤':''}<br><b>${esc(p.nick)}</b><br><span class=dot></span> ${p.score} pts${S.round?' · '+p.cards+' cards':''}</div>`).join('')}</div>`}
 function share(){const m=`Join my Badam 7 game! Room code: ${S.code} ${location.origin}`;navigator.share?navigator.share({text:m}).catch(()=>{}):copyText(m)}
 function room(a){
   const amHost=S.host===gid;$('#chips').innerHTML=S.players.filter(p=>p.id!==gid).map(p=>`<span class="chipb" onclick="ins('${p.id}')">@${esc(p.nick)}</span>`).join('');
   if(S.phase==='lobby'){a.innerHTML=topBar()+`<h1>Lobby</h1><div class="box" style="text-align:center">Room code<div class="big" style="letter-spacing:6px">${S.code}</div>${S.players.length}/7 players · ${S.rounds} rounds
   <div class=row><button class=alt onclick="copyText('${S.code}')">Copy Code</button><button class=alt onclick="share()">Share</button></div></div>
+  <div class="box"><b>⏱ Turn timer</b><div class="row">${[15,20,30,45,60].map(n=>`<button class="sm ${S.turnSec==n?'':'alt'}" ${amHost?'':'disabled'} onclick="emit('setTimer',{sec:${n}})">${n}s</button>`).join('')}</div>${amHost?'':'<small>Only the host can change it</small>'}</div>
   ${amHost?`<button ${S.players.length<2?'disabled':''} onclick="emit('startGame')">Start Game</button>`:'<p style="text-align:center">Waiting for the host…</p>'}`;return}
   const myTurn=S.turn===gid&&S.phase==='playing',legal=new Set(S.legal.map(c=>c.s+c.r));
-  let t=topBar()+`<div class="tbl">${['S','H','D','C'].map(s=>{const b=S.board[s],r='HD'.includes(s)?'red':'';let l='';if(b)for(let i=b.lo;i<=b.hi;i++)l+=`<div class="chip ${r}">${RK[i]}</div>`;return `<div class="col"><b class="${r}">${SY[s]}</b>${l}</div>`}).join('')}</div>
-  <div class="box">${S.last?esc(S.last.text):''}<br><b>${S.phase==='playing'?(myTurn?'👉 Your turn — play a highlighted card':nm(S.turn)+"'s turn"):''}</b>${S.phase==='playing'?`<div class="tb"><i id="tbar"></i></div><div style="text-align:right" id="tsec"></div>`:''}</div>
-  ${myTurn&&!legal.size?`<button style="background:#e33;color:#fff;font-size:1.3rem;padding:20px" onclick="emit('pass')">PASS — no playable card</button>`:''}`;
+  let t=topBar()+`<div class="tbl">${['S','H','D','C'].map(s=>{const b=S.board[s],r='HD'.includes(s)?'red':'';let l='';if(b)for(let i=b.lo;i<=b.hi;i++)l+=`<div class="chip ${r}">${RK[i]}${SY[s]}</div>`;return `<div class="col"><b class="${r}">${SY[s]}</b>${l}</div>`}).join('')}</div>
+  <div class="box st"><div class="stl"><small>${S.last?esc(S.last.text):''}</small><b>${S.phase==='playing'?(myTurn?(legal.size?'👉 Your turn':'No playable card'):nm(S.turn)+"'s turn"):''}</b></div>${S.phase==='playing'?`<span class="rt">${myTurn&&!legal.size?`<button class="pass" onclick="emit('pass')">PASS</button>`:''}<span id="tsec" class="pill"></span></span><div class="tb"><i id="tbar"></i></div>`:''}</div>`;
   if(S.phase==='roundEnd'||S.phase==='final'){const fin=S.phase==='final',mn=Math.min(...S.players.map(p=>p.score)),w=S.players.filter(p=>p.score===mn);
     t+=`<div class="ov"><div class="box" style="max-height:92vh;overflow:auto">${fin?`<div class="big">🏆</div><h2 style="text-align:center">${w.map(p=>p.avatar+' '+esc(p.nick)).join(' & ')} wins!</h2>`:`<h2>Round ${S.round} winner: ${nm(S.res.winner)}</h2>`}
     <table><tr><th>Player<th>Round<th>Total</tr>${[...S.players].sort((x,y)=>x.score-y.score).map(p=>`<tr><td>${p.avatar} ${esc(p.nick)}<td>+${S.res.pen[p.id]}<td><b>${p.score}</b></tr>`).join('')}</table>
@@ -103,6 +106,6 @@ function room(a){
     <button class=alt onclick="emit('leave')">${fin?'Return to Home':'Leave match'}</button></div></div>`}
   a.innerHTML=t;
   let h=$('#hand');if(!h){h=document.createElement('div');h.id='hand';document.body.appendChild(h);h.onclick=e=>{const c=e.target.closest('.card');if(!c)return;if(S.turn!==gid||S.phase!=='playing')return toast('Not your turn');if(!c.classList.contains('ok'))return toast('That card cannot be played');beep(520);emit('play',{s:c.dataset.s,r:+c.dataset.r})}}
-  h.innerHTML=[...S.hand].sort((x,y)=>'SHDC'.indexOf(x.s)-'SHDC'.indexOf(y.s)||x.r-y.r).map(c=>card(c,legal.has(c.s+c.r)?'ok':myTurn?'dim':'')).join('')||'<span>No cards</span>'}
+  h.innerHTML=[...S.hand].sort((x,y)=>'SHDC'.indexOf(x.s)-'SHDC'.indexOf(y.s)||x.r-y.r).map(c=>card(c,legal.has(c.s+c.r)?'ok':myTurn?'dim':'')).join('')||'<span>No cards</span>';a.style.paddingBottom=(h.offsetHeight+16)+'px'}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!socket.connected&&conn!=='connecting')tryNow()});
 render();
