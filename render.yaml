@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: badam7
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      # Paid plan only: add a disk mounted at /var/data and set DB_PATH=/var/data/badam7.db to keep stats across deploys
