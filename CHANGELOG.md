@@ -1,13 +1,5 @@
 # Changelog
 
-## v1.4.0
-- **Welcome page upgraded** (`docs/index.html`, GitHub Pages): "Welcome to Badam 7", animated fanned cards, spinner, "Connecting to game server...", checks `/health` every 3s, wakes the server, redirects automatically when ready (keeps ?room= links), shows a Retry button after 25s, handles being offline. Shows instantly because GitHub Pages never sleeps.
-- Game code unchanged.
-
-## v1.3.2
-- **New `docs/index.html` launcher:** a branded Badam 7 "waking the server" screen, hosted free on GitHub Pages. It pings `/health` every 3s and opens the game automatically when the Render server is awake, so players never see Render's black wake-up page.
-- `/health` now sends a CORS header so the launcher can read it.
-
 ## v1.3.1
 - Pass is now a small red PASS button inside the status strip (next to the seconds pill) instead of a big separate button, and only appears when you have no playable card.
 - Status strip made slimmer; table cards slightly tighter. More of the table and your hand fit on screen.

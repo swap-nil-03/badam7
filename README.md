@@ -38,8 +38,3 @@ badam7/
   data/     SQLite file (created at runtime, git-ignored)
   CHANGELOG.md  render.yaml  package.json
 ```
-
-## Avoid Render's "waking up" screen (v1.3.2)
-1. **Launcher (free):** enable GitHub Pages (repo Settings > Pages > Branch `main`, folder `/docs`). Share `https://YOUR-USER.github.io/badam7/` instead of the onrender.com link (opening the onrender.com link directly while asleep still shows Render's screen, which the game cannot change). Any static host works too, e.g. a Render Static Site with Publish Directory `docs`. Edit `GAME` in `docs/index.html` if your Render URL differs.
-2. **Keep awake (free):** create an UptimeRobot (or cron-job.org) HTTP monitor for `https://YOUR-APP.onrender.com/health` every 5 minutes. Render sleeps after ~15 min idle.
-3. **Paid:** Render Starter plan never sleeps.

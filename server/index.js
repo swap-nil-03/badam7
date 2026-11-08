@@ -6,7 +6,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS players(id TEXT PRIMARY KEY,nick TEXT,avatar
 const app = express(), server = http.createServer(app), io = new Server(server, { pingInterval: 20000, pingTimeout: 60000 });
 app.use(express.static(path.join(__dirname, '..', 'web')));
 const rooms = new Map(), gRoom = new Map(), gSock = new Map(); let queue = [], qTimer = null;
-app.get('/health', (q, r) => { r.set('Access-Control-Allow-Origin', '*'); r.json({ ok: true, version: require('../package.json').version, rooms: rooms.size, players: gSock.size, queue: queue.length }); });
+app.get('/health', (q, r) => r.json({ ok: true, version: require('../package.json').version, rooms: rooms.size, players: gSock.size, queue: queue.length }));
 const EMO = ['👍', '😂', '😮', '😡', '👏', '🔥', '😢', '🎉'];
 const AV = ['🦁', '🐯', '🦊', '🐼', '🦉', '🐘', '🦄', '🐲', '🦅', '🐬'];
 const SY = { S: '♠', H: '♥', D: '♦', C: '♣' }, RK = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
