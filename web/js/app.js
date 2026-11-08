@@ -1,5 +1,5 @@
 
-const VER='1.3.1',SY={S:'♠\uFE0E',H:'♥\uFE0E',D:'♦\uFE0E',C:'♣\uFE0E'},RK=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'],ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+const VER='1.4.0',SY={S:'♠\uFE0E',H:'♥\uFE0E',D:'♦\uFE0E',C:'♣\uFE0E'},RK=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'],ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 let gid=localStorage.gid;if(!gid){gid=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');localStorage.gid=gid}
 let nick=localStorage.nick||'',S=null,view='home',rounds=5,qn=0,conn='connecting',failed=false,cd=15,cdT=null,onl=0,info=null,mute=localStorage.mute==='1',ac;
 let chat=[],unread=0,ment=false,chatOpen=false,vs=null,peers={},vOn=false,vMute=false,speak={};

@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1511"><title>Badam 7 – Welcome</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{min-height:100vh;background:radial-gradient(circle at 50% 0,#1a4a33,#0b1511 70%);color:#f4efe0;font:17px system-ui,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+.w{max-width:420px;width:100%}.logo{font:700 1.1rem Georgia,serif;letter-spacing:.35em;color:#e6b800}
+h1{font:700 2.1rem Georgia,serif;color:#e6b800;margin:.5em 0 .3em}
+.fan{height:150px;width:240px;position:relative;margin:18px auto 6px}
+.c{position:absolute;left:50%;top:18px;width:70px;height:102px;margin-left:-35px;background:#fff;border-radius:10px;color:#111;font:700 1.8rem Georgia,serif;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;box-shadow:0 6px 14px #0009;transform-origin:50% 150%;animation:fan 2.6s ease-in-out infinite}
+.c small{font-size:1.5rem}.c.r{color:#e11}
+.c:nth-child(1){--a:-36deg}.c:nth-child(2){--a:-12deg;animation-delay:.12s}.c:nth-child(3){--a:12deg;animation-delay:.24s}.c:nth-child(4){--a:36deg;animation-delay:.36s}
+@keyframes fan{0%,100%{transform:rotate(calc(var(--a)*.35)) translateY(0)}50%{transform:rotate(var(--a)) translateY(-12px)}}
+.sp{width:34px;height:34px;border:4px solid #2c6;border-top-color:#e6b800;border-radius:50%;margin:18px auto 10px;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+#st{font-size:1.1rem;margin:.2em 0}#hint{opacity:.7;font-size:.9rem;min-height:2.6em;margin:.3em 0}
+button{font:inherit;font-weight:700;background:#e6b800;color:#201800;border:0;border-radius:14px;padding:15px 34px;font-size:1.05rem;cursor:pointer;margin-top:10px}button[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){.c,.sp{animation-duration:6s}}
+</style></head><body><div class="w">
+<div class="logo">♠ BADAM 7 ♥</div>
+<div class="fan" aria-hidden="true"><div class="c">7<small>♠&#xFE0E;</small></div><div class="c r">7<small>♥&#xFE0E;</small></div><div class="c r">7<small>♦&#xFE0E;</small></div><div class="c">7<small>♣&#xFE0E;</small></div></div>
+<h1>Welcome to Badam 7</h1>
+<p id="st">Connecting to game server...</p><div class="sp" id="sp"></div><p id="hint"></p>
+<button id="retry" hidden>Retry</button>
+<noscript><p>Please enable JavaScript to play Badam 7.</p></noscript>
+</div>
+<script>
+// >>> Set this to your Render web service URL (no trailing slash) <<<
+const GAME_URL = location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://badam7.onrender.com';
+const $ = id => document.getElementById(id);
+let t0 = 0, timer = null, stopped = false, busy = false;
+function go() { stopped = true; clearInterval(timer); $('st').textContent = 'Game server is ready!'; $('hint').textContent = 'Starting…'; location.replace(GAME_URL + '/' + location.search + location.hash); }
+async function check() {
+  if (busy || stopped) return false; busy = true;
+  const ac = new AbortController(), to = setTimeout(() => ac.abort(), 8000);
+  try { const r = await fetch(GAME_URL + '/health?t=' + Date.now(), { mode: 'cors', cache: 'no-store', signal: ac.signal });
+    if (r.ok) { const j = await r.json(); if (j && j.ok) { go(); return true; } } } catch (e) {}
+  finally { clearTimeout(to); busy = false; }
+  return false;
+}
+async function tick() {
+  if (stopped) return;
+  if (navigator.onLine === false) { $('hint').textContent = 'No internet connection. Waiting for network…'; return; }
+  await check(); if (stopped) return;
+  const s = (Date.now() - t0) / 1000;
+  $('hint').textContent = s < 20 ? 'Waking up the server — first visit can take up to a minute.' : 'Taking longer than usual. Still trying…';
+  if (s >= 25) $('retry').hidden = false;
+}
+function start() {
+  stopped = false; t0 = Date.now(); $('retry').hidden = true; $('st').textContent = 'Connecting to game server...'; $('hint').textContent = '';
+  try { fetch(GAME_URL + '/health', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} // sends the request that wakes a sleeping server
+  clearInterval(timer); timer = setInterval(tick, 3000); tick();
+}
+$('retry').onclick = start; addEventListener('online', start); start();
+</script></body></html>
